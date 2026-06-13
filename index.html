@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+  <meta charset="UTF-8">
+  <title>Voice Assistant</title>
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #0f0f0f;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    h1 { margin-bottom: 20px; }
+    #status {
+      margin-bottom: 30px;
+      font-size: 18px;
+      color: #aaa;
+    }
+    .btn {
+      padding: 20px 40px;
+      font-size: 20px;
+      border: none;
+      border-radius: 50px;
+      color: white;
+      cursor: pointer;
+      margin: 10px;
+    }
+    #startBtn { background: #2563eb; }
+    #startBtn:hover { background: #1d4ed8; }
+    #micBtn { background: #16a34a; display: none; }
+    #micBtn.muted { background: #dc2626; }
+    #stopBtn { background: #dc2626; display: none; }
+    #stopBtn:hover { background: #b91c1c; }
+  </style>
+</head>
+<body>
+  <h1>🎙️ Voice Assistant</h1>
+  <div id="status">Click to start</div>
+  <button class="btn" id="startBtn" onclick="connect()">Start Talking</button>
+  <button class="btn" id="micBtn" onclick="toggleMic()">🎙️ Mute</button>
+  <!--<button class="btn" id="stopBtn" onclick="disconnect()">⏹️ Stop Session</button>-->
+
+  <script>
+    const LIVEKIT_URL = "wss://voicechatbot-okwhmo5i.livekit.cloud";
+    let room = null;
+    let micEnabled = true;
+
+    async function connect() {
+      document.getElementById("status").innerText = "Connecting...";
+      document.getElementById("startBtn").disabled = true;
+
+      const res = await fetch("http://127.0.0.1:5000/token");
+      const { token } = await res.json();
+
+      room = new LivekitClient.Room();
+
+      room.on("participantConnected", () => {
+        document.getElementById("status").innerText = "Agent joined — speak now!";
+      });
+
+      room.on("trackSubscribed", (track) => {
+        if (track.kind === "audio") {
+          track.attach();
+        }
+      });
+
+      await room.connect(LIVEKIT_URL, token);
+      await room.localParticipant.setMicrophoneEnabled(true);
+      micEnabled = true;
+
+      document.getElementById("status").innerText = "Listening...";
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("micBtn").style.display = "inline-block";
+      document.getElementById("stopBtn").style.display = "inline-block";
+    }
+
+    async function toggleMic() {
+      if (!room) return;
+      micEnabled = !micEnabled;
+      await room.localParticipant.setMicrophoneEnabled(micEnabled);
+
+      const btn = document.getElementById("micBtn");
+      if (micEnabled) {
+        btn.textContent = "🎙️ Mute";
+        btn.classList.remove("muted");
+        document.getElementById("status").innerText = "Listening...";
+      } else {
+        btn.textContent = "🔇 Unmute";
+        btn.classList.add("muted");
+        document.getElementById("status").innerText = "Microphone muted";
+      }
+    }
+
+    // // async function disconnect() {
+    // //   if (room) {
+    // //     await room.disconnect();
+    // //     room = null;
+    // //   }
+
+    //   document.getElementById("status").innerText = "Session ended. Click to start again.";
+    //   document.getElementById("startBtn").style.display = "inline-block";
+    //   document.getElementById("startBtn").disabled = false;
+    //   document.getElementById("micBtn").style.display = "none";
+    //   document.getElementById("micBtn").textContent = "🎙️ Mute";
+    //   document.getElementById("micBtn").classList.remove("muted");
+    //   document.getElementById("stopBtn").style.display = "none";
+    //   micEnabled = true;
+    // }
+  </script>
+</body>
+</html>

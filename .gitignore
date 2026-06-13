@@ -1,0 +1,26 @@
+# Environment variables (contains your API keys - NEVER upload this)
+.env
+
+# Virtual environment (too large, can be recreated)
+venv/
+
+# ChromaDB (can be rebuilt with ingest.py)
+chroma_db/
+
+# Token file (Google auth)
+token.pickle
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code settings
+.vscode/
+
+# Windows files
+Thumbs.db
+desktop.ini
+
+credentials.json
+Extras/
