@@ -4,7 +4,7 @@ import datetime
 import requests
 from dotenv import load_dotenv
 from livekit.agents import AgentSession, Agent, RoomInputOptions, function_tool
-from livekit.plugins import groq, silero, deepgram
+from livekit.plugins import groq, silero, deepgram , noise_cancellation
 from knowledge_tool import search_knowledge_base
 
 
@@ -157,10 +157,10 @@ async def entrypoint(ctx):
     await session.start(
         room=ctx.room,
         agent=Assistant(),
-        room_input_options=RoomInputOptions(),
-        # ── Pass MCP toolset here ─────────────────────────────────────────
-        #toolsets=[drive_toolset]
-    )
+        room_input_options=RoomInputOptions(
+            noise_cancellation=noise_cancellation.BVC(),
+    ),
+)
 
     print("🎤 Agent started successfully!")
 
@@ -172,3 +172,6 @@ if __name__ == "__main__":
     print("🚀 Starting LiveKit Agent Worker...")
     from livekit.agents import cli, WorkerOptions
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+
+
+
