@@ -132,13 +132,6 @@ async def entrypoint(ctx):
     await ctx.connect()
     print(f"✅ [DEBUG] Connected to room: {ctx.room.name}")
 
-    # drive_toolset = mcp.MCPToolset(
-    #     server_params=StdioServerParameters(
-    #         command="python",
-    #         args=["drive_mcp_server.py"]
-    #     )
-    # )
-
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=deepgram.STT(model="nova-3", language="multi"),
@@ -155,9 +148,9 @@ async def entrypoint(ctx):
     await session.start(
         room=ctx.room,
         agent=Assistant(),
-        # room_input_options=RoomInputOptions(
-        #     noise_cancellation=noise_cancellation.BVC(),
-        # ),
+        room_input_options=RoomInputOptions(
+            noise_cancellation=noise_cancellation.BVC(),
+        ),
     )
 
     print("🎤 Agent started successfully!")
