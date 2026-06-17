@@ -4,7 +4,7 @@ import datetime
 import requests
 from dotenv import load_dotenv
 from livekit.agents import AgentSession, Agent, RoomInputOptions, function_tool
-from livekit.plugins import groq, silero, deepgram , noise_cancellation
+from livekit.plugins import groq, silero, deepgram , noise_cancellation , google, elevenlabs
 from knowledge_tool import search_knowledge_base
 
 
@@ -120,10 +120,9 @@ async def read_notes() -> str:
 class Assistant(Agent):
     def __init__(self):
         super().__init__(
-            instructions="""You are a helpful voice assistant. 
-                Always reply in clear, natural English.
-                Keep responses short and conversational — this is a voice chat.
-                You have access to tools for weather, time, and math — use them when relevant.""",
+            instructions="""Tum ek madadgar voice assistant ho.
+                Hamesha Roman Urdu mein jawab dou, halki si Pakistani lehja ke saath.
+                Jawab chota aur baat-cheet wala rakho — yeh voice chat hai.""" , 
              tools=[get_weather, get_prayer_times , get_current_time , save_note , read_notes , search_knowledge_base]
         )
 
@@ -142,14 +141,13 @@ async def entrypoint(ctx):
 
     session = AgentSession(
         vad=silero.VAD.load(),
-        stt=groq.STT(language="en"),
-        llm=groq.LLM(model="llama-3.3-70b-versatile"),
-        tts=deepgram.TTS(model="aura-asteria-en"),
-        # mcp_servers=[
-        #     mcp.MCPServerStdio(
-        #         command="python",
-        #         args=["notes_mcp.py"],
-        #     ),]
+        stt=deepgram.STT(model="nova-3", language="multi"),
+        llm=google.LLM(model="gemini-2.5-flash"),
+        #llm=groq.LLM(model="llama-3.3-70b-versatile"),
+        tts=elevenlabs.TTS(
+            model="eleven_flash_v2_5",
+            voice_id="SAz9YHcvj6GT2YYXdXww",
+        )
     )
 
     print("✅ AgentSession created")
@@ -157,21 +155,20 @@ async def entrypoint(ctx):
     await session.start(
         room=ctx.room,
         agent=Assistant(),
-        room_input_options=RoomInputOptions(
-            noise_cancellation=noise_cancellation.BVC(),
-    ),
-)
+        # room_input_options=RoomInputOptions(
+        #     noise_cancellation=noise_cancellation.BVC(),
+        # ),
+    )
 
     print("🎤 Agent started successfully!")
 
     await session.generate_reply(
-        instructions="Say exactly this: Hello! I am your voice assistant. How can I help you today?"
+        instructions="Say exactly this: Mein apka voice assistant hon , mein apki kia madad krsakta hon"
     )
 
 if __name__ == "__main__":
     print("🚀 Starting LiveKit Agent Worker...")
     from livekit.agents import cli, WorkerOptions
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
-
 
 

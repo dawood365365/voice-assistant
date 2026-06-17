@@ -25,7 +25,12 @@ print("✅ Knowledge base loaded!")
 # Return them as context for the LLM to answer from
 @function_tool
 async def search_knowledge_base(query: str) -> str:
-    """Search the course slides knowledge base to answer questions about expository writing."""
+    """Search the course slides knowledge base ONLY for questions about:
+    - Academic writing (expository writing, proposal writing, abstract, executive summary)
+    - CMAPP analysis
+    - Brainstorming strategies
+    - Graphics in writing
+    Do NOT use this tool for general knowledge, sports, weather, or current events."""
     try:
         # similarity_search finds the most relevant chunks
         # k=3 means return top 3 most relevant chunks
