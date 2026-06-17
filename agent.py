@@ -135,8 +135,7 @@ async def entrypoint(ctx):
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=deepgram.STT(model="nova-3", language="multi"),
-        llm=google.LLM(model="gemini-2.5-flash"),
-        #llm=groq.LLM(model="llama-3.3-70b-versatile"),
+        llm=groq.LLM(model="llama-3.3-70b-versatile"),
         tts=elevenlabs.TTS(
             model="eleven_flash_v2_5",
             voice_id="SAz9YHcvj6GT2YYXdXww",
