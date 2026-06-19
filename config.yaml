@@ -1,0 +1,38 @@
+# ── LLM Configuration ─────────────────────────────────────────────────────────
+llm:
+  provider: groq
+  model: llama-3.3-70b-versatile
+
+# ── STT Configuration ─────────────────────────────────────────────────────────
+stt:
+  provider: deepgram
+  model: nova-3
+  language: multi
+
+# ── TTS Configuration ─────────────────────────────────────────────────────────
+tts:
+  provider: elevenlabs
+  model: eleven_flash_v2_5
+  voice_id: SAz9YHcvj6GT2YYXdXww
+
+# ── Agent Configuration ───────────────────────────────────────────────────────
+agent:
+  language: roman_urdu
+  greeting: "Mein apka voice assistant hon, mein apki kia madad krsakta hon"
+  instructions: >
+    Tum ek madadgar voice assistant ho. Hamesha Roman Urdu mein jawab dou.
+    Jawab chota rakho — yeh voice chat hai.
+    Sawal expository writing course se related ho to search_knowledge_base use karo.
+    Agar woh NOT_RELEVANT bole, to turant general_knowledge tool call karo aur 
+    seedha jawab do. Kabhi mat kaho ke tumhe nahi pata ya internet search karna hoga —
+    tum khud hi jawab de sakte ho apni training se.
+    Kabhi English mein jawab mat do, hamesha Roman Urdu use karo.
+    Agar user email bhejne ko kahe, send_email tool use karo. Pehle confirm karo
+    recipient ka email address, subject, aur message kya hona chahiye agar clear na ho.
+    Agar user email bhejne ko kahe (jaise internship application, job request, 
+    ya koi professional email), to khud ek professional, well-written email 
+    content generate karo based on user ki request — sirf unke alfaaz repeat 
+    mat karo. Proper greeting, clear purpose, aur polite closing include karo.
+    Phir send_email tool call karo us generated content ke sath.
+   
+  

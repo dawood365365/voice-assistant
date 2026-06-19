@@ -3,15 +3,13 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from livekit.agents import function_tool
 
 # ── LOAD VECTOR STORE ONCE ────────────────────────────────────────────────────
-# We load this once when the file is imported
-# So it doesn't reload every time the tool is called
-# This makes responses much faster
+
 print("⏳ Loading knowledge base...")
 
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 vectorstore = Chroma(
-    persist_directory="chroma_db",    # same folder ingest.py created
+    persist_directory="chroma_db",    
     embedding_function=embeddings
 )
 
@@ -25,26 +23,25 @@ print("✅ Knowledge base loaded!")
 # Return them as context for the LLM to answer from
 @function_tool
 async def search_knowledge_base(query: str) -> str:
-    """Search the course slides knowledge base ONLY for questions about:
-    - Academic writing (expository writing, proposal writing, abstract, executive summary)
-    - CMAPP analysis
-    - Brainstorming strategies
-    - Graphics in writing
-    Do NOT use this tool for general knowledge, sports, weather, or current events."""
+    """Search the course slides knowledge base. ONLY use this for questions about 
+    expository writing, essay structure, or academic writing course content. 
+    If this tool returns NOT_RELEVANT, you MUST immediately call the general_knowledge 
+    tool next — do not answer the user yet, do not say you don't know."""
     try:
-        # similarity_search finds the most relevant chunks
-        # k=3 means return top 3 most relevant chunks
-        results = vectorstore.similarity_search(query, k=3)
+        results = vectorstore.similarity_search_with_score(query, k=3)
 
-        if not results:
-            return "No relevant information found in the course slides."
+        #Set based on the testing result
+        RELEVANCE_THRESHOLD = 1.1
 
-        # Combine the chunks into one response
+        if not results or results[0][1] > RELEVANCE_THRESHOLD:
+            return "NOT_RELEVANT: This question is not related to the course slides. You must now call the general_knowledge tool."
+
         combined = ""
-        for i, doc in enumerate(results):
-            source = doc.metadata.get("source", "unknown")
-            slide = doc.metadata.get("slide", "?")
-            combined += f"[From {source}, Slide {slide}]:\n{doc.page_content}\n\n"
+        for doc, score in results:
+            if score <= RELEVANCE_THRESHOLD:
+                source = doc.metadata.get("source", "unknown")
+                slide = doc.metadata.get("slide", "?")
+                combined += f"[From {source}, Slide {slide}]:\n{doc.page_content}\n\n"
 
         return f"Here is relevant information from your course slides:\n\n{combined}"
 

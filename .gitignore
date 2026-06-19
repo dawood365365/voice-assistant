@@ -7,6 +7,9 @@ venv/
 # ChromaDB (can be rebuilt with ingest.py)
 chroma_db/
 
+#It was just for checking
+check_voices.py
+
 # Token file (Google auth)
 token.pickle
 
@@ -24,3 +27,4 @@ desktop.ini
 
 credentials.json
 Extras/
+
