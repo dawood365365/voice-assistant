@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+
+  # ── Flask Token Server ──────────────────────────────────────────────────────
+  server:
+    build: .
+    container_name: voicebot-server
+    command: python server.py
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  # ── LiveKit Voice Agent ─────────────────────────────────────────────────────
+  agent:
+    build: .
+    container_name: voicebot-agent
+    command: python agent.py dev
+    env_file:
+      - .env
+    depends_on:
+      - server
+    restart: unless-stopped

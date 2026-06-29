@@ -1,5 +1,6 @@
 import os
 from pptx import Presentation
+from docx import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -36,6 +37,67 @@ def load_pptx_files(folder_path: str) -> list:
                     })
 
     print(f"✅ Extracted text from {len(documents)} slides total")
+    return documents
+
+# ── LOAD DOCX FILES ────────────────────────────────────────────────────────────
+# Goes through every .docx file in the slides/ folder
+# Extracts text from paragraphs AND tables (since our Jazz doc has tables)
+def load_docx_files(folder_path: str) -> list:
+    documents = []
+
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".docx"):
+            filepath = os.path.join(folder_path, filename)
+            print(f"📂 Loading: {filename}")
+
+            doc = Document(filepath)
+            current_section = "General"
+            section_text = []
+            section_num = 1
+
+            # Go through paragraphs — headings mark new sections
+            for para in doc.paragraphs:
+                if not para.text.strip():
+                    continue
+
+                # Treat Heading 1 / Heading 2 styles as section breaks
+                if para.style.name.startswith("Heading"):
+                    # Save the previous section before starting a new one
+                    if section_text:
+                        documents.append({
+                            "text": "\n".join(section_text),
+                            "source": filename,
+                            "slide": section_num
+                        })
+                        section_num += 1
+                        section_text = []
+                    current_section = para.text.strip()
+                    section_text.append(current_section)
+                else:
+                    section_text.append(para.text.strip())
+
+            # Save the last section
+            if section_text:
+                documents.append({
+                    "text": "\n".join(section_text),
+                    "source": filename,
+                    "slide": section_num
+                })
+
+            # Extract tables separately (e.g. package price tables)
+            for t_idx, table in enumerate(doc.tables):
+                table_text = []
+                for row in table.rows:
+                    row_text = " | ".join(cell.text.strip() for cell in row.cells)
+                    table_text.append(row_text)
+                if table_text:
+                    documents.append({
+                        "text": "\n".join(table_text),
+                        "source": filename,
+                        "slide": f"table-{t_idx + 1}"
+                    })
+
+    print(f"✅ Extracted text from {len(documents)} sections/tables total")
     return documents
 
 
@@ -101,16 +163,20 @@ def build_vector_store(chunks: list):
     return vectorstore
 
 
-# ── MAIN ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("🚀 Starting ingestion pipeline...")
 
-    # Load all PPTX files from slides/ folder
-    documents = load_pptx_files("slides")
+    # Load both PPTX and DOCX files from slides/ folder
+    pptx_documents = load_pptx_files("slides")
+    docx_documents = load_docx_files("slides")
+
+    documents = pptx_documents + docx_documents
 
     if not documents:
-        print("❌ No slides found! Make sure your PPTX files are in the slides/ folder")
+        print("❌ No slides or documents found! Make sure your files are in the slides/ folder")
         exit()
+
+    print(f"📊 Total source documents found: {len(documents)} (PPTX: {len(pptx_documents)}, DOCX: {len(docx_documents)})")
 
     # Split into chunks
     chunks = split_documents(documents)
@@ -119,4 +185,4 @@ if __name__ == "__main__":
     build_vector_store(chunks)
 
     print("\n🎉 Done! Knowledge base is ready.")
-    print("You can now run agent.py and ask questions from your slides.")
+    print("You can now run agent.py and ask questions from your slides/documents.")

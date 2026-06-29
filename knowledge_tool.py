@@ -23,10 +23,15 @@ print("✅ Knowledge base loaded!")
 # Return them as context for the LLM to answer from
 @function_tool
 async def search_knowledge_base(query: str) -> str:
-    """Search the course slides knowledge base. ONLY use this for questions about 
-    expository writing, essay structure, or academic writing course content. 
-    If this tool returns NOT_RELEVANT, you MUST immediately call the general_knowledge 
-    tool next — do not answer the user yet, do not say you don't know."""
+    # """Search the course slides knowledge base. ONLY use this for questions about 
+    # expository writing, essay structure, or academic writing course content. 
+    # If this tool returns NOT_RELEVANT, you MUST immediately call the general_knowledge 
+    # tool next — do not answer the user yet, do not say you don't know."""
+
+    """Search the Jazz customer support knowledge base. ONLY use this for questions 
+    about Jazz SIM registration, eSIM activation, packages, billing, complaints, 
+    customer service channels, or roaming. If this tool returns NOT_RELEVANT, you 
+    MUST immediately call the general_knowledge tool next."""
     try:
         results = vectorstore.similarity_search_with_score(query, k=3)
 
