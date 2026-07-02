@@ -7,7 +7,8 @@ from flask_cors import CORS
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+CORS(app, origins=["https://voice-assistant-frontend-five.vercel.app/", "http://localhost:3000"])
 
 @app.route("/")
 def index():
@@ -26,4 +27,4 @@ def get_token():
     return jsonify({"token": token})
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(host="0.0.0.0", port=5000)

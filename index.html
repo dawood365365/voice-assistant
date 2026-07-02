@@ -54,7 +54,7 @@
       document.getElementById("status").innerText = "Connecting...";
       document.getElementById("startBtn").disabled = true;
 
-      const res = await fetch("http://127.0.0.1:5000/token");
+      const res = await fetch("https://voice-assistant-production-8213.up.railway.app/token");
       const { token } = await res.json();
 
       room = new LivekitClient.Room();

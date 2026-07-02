@@ -4,26 +4,34 @@ import datetime
 import requests
 from dotenv import load_dotenv
 from livekit.agents import AgentSession, Agent, RoomInputOptions, function_tool
-from livekit.plugins import groq, silero, deepgram , noise_cancellation , google, elevenlabs
+from livekit.plugins import groq, silero,  deepgram
 from knowledge_tool import search_knowledge_base
 import yaml
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
+from key_manager import key_manager
+from livekit.agents import llm as agents_llm
 
 load_dotenv()
 
 #Reading the yaml file
 
 # Load config
-with open("config.yaml", "r") as f:
+with open("config.yaml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
 
 llm_config = config["llm"]
 stt_config = config["stt"]
 tts_config = config["tts"]
 agent_config = config["agent"]
+agent_config = config["agent"]
+active_lang = agent_config["active_language"]
+
+greeting = agent_config["greetings"][active_lang]
+instructions = agent_config["instructions"][active_lang]
+
+
 
 
 
@@ -173,17 +181,62 @@ async def send_email(to_email: str, subject: str, body: str) -> str:
 
     except Exception as e:
         return f"Could not send email: {str(e)}"
+    
+
+class AutoSwitchGroqLLM(groq.LLM):
+    """
+    Extends Groq LLM to automatically rotate API keys on 429 errors.
+    """
+    def __init__(self, model: str):
+        os.environ["GROQ_API_KEY"] = key_manager.current_key
+        super().__init__(model=model)
+
+    def chat(self, *args, **kwargs):
+        return _AutoSwitchStream(self, super().chat(*args, **kwargs), args, kwargs)
+
+
+class _AutoSwitchStream:
+    def __init__(self, llm_instance, stream, args, kwargs):
+        self._llm = llm_instance
+        self._stream = stream
+        self._args = args
+        self._kwargs = kwargs
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return await self._stream.__anext__()
+        except Exception as e:
+            error_str = str(e).lower()
+            if "429" in str(e) or "quota" in error_str or "rate" in error_str or "exhausted" in error_str:
+                print(f"⚠️ Rate limit hit — rotating Groq key...")
+                if key_manager.switch_key():
+                    os.environ["GROQ_API_KEY"] = key_manager.current_key
+                    # restart stream with new key
+                    self._stream = super(AutoSwitchGroqLLM, self._llm).chat(*self._args, **self._kwargs)
+                    return await self._stream.__anext__()
+            raise
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        pass
+
+    # forward any other attributes to the underlying stream
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
 
 # ── AGENT CLASS ───────────────────────────────────────────────────────────────
 # tools=[...] passes the three tools to the agent
 # Now the LLM knows about these tools and will call them when needed
 class Assistant(Agent):
-    def __init__(self):
+    def __init__(self, instructions: str):
         super().__init__(
-            instructions="""Tum ek madadgar voice assistant ho.
-                Hamesha Roman Urdu mein jawab dou, halki si Pakistani lehja ke saath.
-                Jawab chota aur baat-cheet wala rakho — yeh voice chat hai.""" , 
-             tools=[get_weather, get_prayer_times , get_current_time , save_note , read_notes , search_knowledge_base , general_knowledge , send_email]
+            instructions=instructions,
+            tools=[get_weather, get_prayer_times, get_current_time, save_note, read_notes, search_knowledge_base , general_knowledge, send_email]
         )
 
 
@@ -192,16 +245,22 @@ async def entrypoint(ctx):
     await ctx.connect()
     print(f"✅ [DEBUG] Connected to room: {ctx.room.name}")
 
+
+
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=deepgram.STT(
             model=stt_config["model"],
             language=stt_config["language"]
         ),
-        llm=groq.LLM(model=llm_config["model"]),
-        tts=elevenlabs.TTS(
-            model=tts_config["model"],
-            voice_id=tts_config["voice_id"]
+        
+        llm=AutoSwitchGroqLLM(model=llm_config["model"]),
+        # tts=elevenlabs.TTS(
+        #     model=tts_config["model"],
+        #     voice_id=tts_config["voice_id"]
+        # ),
+        tts=deepgram.TTS(
+            model=tts_config["model"]
         ),
     )
 
@@ -209,21 +268,18 @@ async def entrypoint(ctx):
 
     await session.start(
         room=ctx.room,
-        agent=Assistant(),
-        room_input_options=RoomInputOptions(
-            noise_cancellation=noise_cancellation.BVC(),
-        ),
+        agent=Assistant(instructions=instructions),
+        room_input_options=RoomInputOptions(),
     )
 
-    print("🎤 Agent started successfully!")
-
     await session.generate_reply(
-        instructions=f"Greet the user by saying: {agent_config['greeting']}"
+        instructions=f"Say exactly this: {greeting}"
     )
 
 if __name__ == "__main__":
     print("🚀 Starting LiveKit Agent Worker...")
     from livekit.agents import cli, WorkerOptions
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint , 
+                               initialize_process_timeout=60,))
 
 

@@ -3,12 +3,9 @@ from datetime import datetime
 from mcp.server.fastmcp import FastMCP
 
 # ── CREATE MCP SERVER ─────────────────────────────────────────────────────────
-# FastMCP is Anthropic's framework to build MCP servers easily
-# "notes-server" is just the name of this server
 mcp = FastMCP("notes-server")
 
 # ── WHERE NOTES ARE SAVED ─────────────────────────────────────────────────────
-# notes.txt will be created in the same folder as this file
 NOTES_FILE = "notes.txt"
 
 

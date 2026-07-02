@@ -11,8 +11,12 @@ COPY requirements-docker.txt .
 # Install all Python dependencies
 RUN pip install --no-cache-dir -r requirements-docker.txt
 
+# Pre-download embedding model so it's cached in the image
+RUN python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')"
+
 # Copy the rest of the project files
 COPY . .
 
-# Expose port 5000 for Flask server
-EXPOSE 5000
+RUN python ingest.py
+
+CMD ["python", "agent.py", "start"]
