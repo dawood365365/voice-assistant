@@ -10,7 +10,6 @@ import yaml
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from key_manager import key_manager
 from livekit.agents import llm as agents_llm
 
 load_dotenv()
