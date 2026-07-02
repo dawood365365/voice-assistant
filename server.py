@@ -8,7 +8,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-CORS(app, origins=["https://voice-assistant-frontend-five.vercel.app/", "http://localhost:3000"])
+CORS(app)
 
 @app.route("/")
 def index():
