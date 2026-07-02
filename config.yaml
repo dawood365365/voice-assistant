@@ -4,8 +4,8 @@
 #   model: llama-3.3-70b-versatile
 
 llm:
-  provider: groq
-  model: llama-3.3-70b-versatile
+  provider: cerebras
+  model: llama-3.3-70b
 
 # ── STT Configuration ─────────────────────────────────────────────────────────
 stt:

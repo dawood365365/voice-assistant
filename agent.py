@@ -4,7 +4,7 @@ import datetime
 import requests
 from dotenv import load_dotenv
 from livekit.agents import AgentSession, Agent, RoomInputOptions, function_tool
-from livekit.plugins import groq, silero,  deepgram
+from livekit.plugins import groq, silero,  deepgram , cerebras
 from knowledge_tool import search_knowledge_base
 import yaml
 import smtplib
@@ -183,52 +183,6 @@ async def send_email(to_email: str, subject: str, body: str) -> str:
         return f"Could not send email: {str(e)}"
     
 
-class AutoSwitchGroqLLM(groq.LLM):
-    """
-    Extends Groq LLM to automatically rotate API keys on 429 errors.
-    """
-    def __init__(self, model: str):
-        os.environ["GROQ_API_KEY"] = key_manager.current_key
-        super().__init__(model=model)
-
-    def chat(self, *args, **kwargs):
-        return _AutoSwitchStream(self, super().chat(*args, **kwargs), args, kwargs)
-
-
-class _AutoSwitchStream:
-    def __init__(self, llm_instance, stream, args, kwargs):
-        self._llm = llm_instance
-        self._stream = stream
-        self._args = args
-        self._kwargs = kwargs
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        try:
-            return await self._stream.__anext__()
-        except Exception as e:
-            error_str = str(e).lower()
-            if "429" in str(e) or "quota" in error_str or "rate" in error_str or "exhausted" in error_str:
-                print(f"⚠️ Rate limit hit — rotating Groq key...")
-                if key_manager.switch_key():
-                    os.environ["GROQ_API_KEY"] = key_manager.current_key
-                    # restart stream with new key
-                    self._stream = super(AutoSwitchGroqLLM, self._llm).chat(*self._args, **self._kwargs)
-                    return await self._stream.__anext__()
-            raise
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *args):
-        pass
-
-    # forward any other attributes to the underlying stream
-    def __getattr__(self, name):
-        return getattr(self._stream, name)
-
 # ── AGENT CLASS ───────────────────────────────────────────────────────────────
 # tools=[...] passes the three tools to the agent
 # Now the LLM knows about these tools and will call them when needed
@@ -254,7 +208,7 @@ async def entrypoint(ctx):
             language=stt_config["language"]
         ),
         
-        llm=AutoSwitchGroqLLM(model=llm_config["model"]),
+        llm=cerebras.LLM(model=llm_config["model"]),
         # tts=elevenlabs.TTS(
         #     model=tts_config["model"],
         #     voice_id=tts_config["voice_id"]

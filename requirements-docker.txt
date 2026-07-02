@@ -95,6 +95,7 @@ livekit-plugins-groq==1.5.17
 livekit-plugins-openai==1.5.17
 livekit-plugins-silero==1.5.17
 livekit-protocol==1.1.13
+livekit-plugins-cerebras==1.5.17
 llvmlite==0.47.0
 lxml==6.1.1
 markdown-it-py==4.2.0
